@@ -9,12 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
-        Schema::create('oauth_personal_access_clients', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->uuid('client_id');
-            $table->timestamps();
+        Schema::create('tags', function (Blueprint $table) {
+            $table->id(); // Primary key
+            $table->string('name'); // Tag name
+            $table->timestamps(); // Created and updated timestamps
         });
     }
 
@@ -23,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('oauth_personal_access_clients');
+        Schema::dropIfExists('tags');
     }
 };
