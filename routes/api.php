@@ -1,87 +1,87 @@
 <?php
 
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
+use Laravel\Passport\Http\Controllers\ApproveAuthorizationController;
+use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
+use Laravel\Passport\Http\Controllers\ClientController;
+use Laravel\Passport\Http\Controllers\DenyAuthorizationController;
+use Laravel\Passport\Http\Controllers\PersonalAccessTokenController;
+use Laravel\Passport\Http\Controllers\ScopeController;
+use Laravel\Passport\Http\Controllers\TransientTokenController;
 
 $currentVersion = env('API_CURRENT_VERSION');
 
-Route::prefix("api/{$currentVersion}")->group(function () {
+Route::prefix("{$currentVersion}")->group(function () {
 
-    Route::post('/auth', 'AuthController@login');
+    // Public auth routes
+    Route::post('/auth', [AuthController::class, 'login']);
+    Route::middleware('throttle')->post('/token', [AccessTokenController::class, 'issueToken'])->name('token');
+    Route::post('/token/refresh', [TransientTokenController::class, 'refresh'])->name('token.refresh');
+    Route::post('/authorize', [ApproveAuthorizationController::class, 'approve'])->name('authorizations.approve');
+    Route::delete('/authorize', [DenyAuthorizationController::class, 'deny'])->name('authorizations.deny');
 
-    Route::middleware('auth:api')->get('/user', function (Request $request) {
-        return $request->user();
-    });
+    // Other public routes
+    Route::post('users', [UserController::class, 'store']);
+    Route::get('categories', [CategoryController::class, 'index']);
+    Route::get('categories/{category}', [CategoryController::class, 'show']);
+    Route::get('tags', [TagController::class, 'index']);
+    Route::get('tags/{tag}', [TagController::class, 'show']);
 
-    Route::middleware('throttle')->post('/token', [
-        'uses' => 'AccessTokenController@issueToken',
-        'as' => 'token',
-    ]);
-
-    Route::post('/token/refresh', [
-        'uses' => 'TransientTokenController@refresh',
-        'as' => 'token.refresh',
-    ]);
-
-    Route::post('/authorize', [
-        'uses' => 'ApproveAuthorizationController@approve',
-        'as' => 'authorizations.approve',
-    ]);
-
-    Route::delete('/authorize', [
-        'uses' => 'DenyAuthorizationController@deny',
-        'as' => 'authorizations.deny',
-    ]);
-
+    // Authenticated routes
     Route::middleware('auth:api')->group(function () {
-        Route::get('/tokens', [
-            'uses' => 'AuthorizedAccessTokenController@forUser',
-            'as' => 'tokens.index',
-        ]);
 
-        Route::delete('/tokens/{token_id}', [
-            'uses' => 'AuthorizedAccessTokenController@destroy',
-            'as' => 'tokens.destroy',
-        ]);
+        Route::get('user', function (Request $request) {
+            return $request->user();
+        });
 
-        Route::get('/clients', [
-            'uses' => 'ClientController@forUser',
-            'as' => 'clients.index',
-        ]);
+        // Auth routes
+        Route::get('/tokens', [AuthorizedAccessTokenController::class, 'forUser'])->name('tokens.index');
+        Route::delete('/tokens/{token_id}', [AuthorizedAccessTokenController::class, 'destroy'])->name('tokens.destroy');
+        Route::get('/clients', [ClientController::class, 'forUser'])->name('clients.index');
+        Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::put('/clients/{client_id}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('/clients/{client_id}', [ClientController::class, 'destroy'])->name('clients.destroy');
+        Route::get('/scopes', [ScopeController::class, 'all'])->name('scopes.index');
+        Route::get('/personal-access-tokens', [PersonalAccessTokenController::class, 'forUser'])->name('personal.tokens.index');
+        Route::post('/personal-access-tokens', [PersonalAccessTokenController::class, 'store'])->name('personal.tokens.store');
+        Route::delete('/personal-access-tokens/{token_id}', [PersonalAccessTokenController::class, 'destroy'])->name('personal.tokens.destroy');
 
-        Route::post('/clients', [
-            'uses' => 'ClientController@store',
-            'as' => 'clients.store',
-        ]);
+        // User routes
+        Route::get('users', [UserController::class, 'index']);
+        Route::get('users/{user}', [UserController::class, 'show']);
+        Route::put('users/{user}', [UserController::class, 'update']);
+        Route::delete('users/{user}', [UserController::class, 'destroy']);
 
-        Route::put('/clients/{client_id}', [
-            'uses' => 'ClientController@update',
-            'as' => 'clients.update',
-        ]);
+        // Post routes
+        Route::get('posts', [PostController::class, 'index']);
+        Route::post('posts', [PostController::class, 'store']);
+        Route::get('posts/{post}', [PostController::class, 'show']);
+        Route::put('posts/{post}', [PostController::class, 'update']);
+        Route::delete('posts/{post}', [PostController::class, 'destroy']);
 
-        Route::delete('/clients/{client_id}', [
-            'uses' => 'ClientController@destroy',
-            'as' => 'clients.destroy',
-        ]);
+        // Comment routes
+        Route::get('comments', [CommentController::class, 'index']);
+        Route::post('comments', [CommentController::class, 'store']);
+        Route::get('comments/{comment}', [CommentController::class, 'show']);
+        Route::put('comments/{comment}', [CommentController::class, 'update']);
+        Route::delete('comments/{comment}', [CommentController::class, 'destroy']);
 
-        Route::get('/scopes', [
-            'uses' => 'ScopeController@all',
-            'as' => 'scopes.index',
-        ]);
+        // Category routes
+        Route::post('categories', [CategoryController::class, 'store']);
+        Route::put('categories/{category}', [CategoryController::class, 'update']);
+        Route::delete('categories/{category}', [CategoryController::class, 'destroy']);
 
-        Route::get('/personal-access-tokens', [
-            'uses' => 'PersonalAccessTokenController@forUser',
-            'as' => 'personal.tokens.index',
-        ]);
-
-        Route::post('/personal-access-tokens', [
-            'uses' => 'PersonalAccessTokenController@store',
-            'as' => 'personal.tokens.store',
-        ]);
-
-        Route::delete('/personal-access-tokens/{token_id}', [
-            'uses' => 'PersonalAccessTokenController@destroy',
-            'as' => 'personal.tokens.destroy',
-        ]);
+        // Tag routes
+        Route::post('tags', [TagController::class, 'store']);
+        Route::put('tags/{tag}', [TagController::class, 'update']);
+        Route::delete('tags/{tag}', [TagController::class, 'destroy']);
     });
 });
