@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Filesystem\FilesystemServiceProvider;
+use Laravel\Passport\Passport;
+use Laravel\Passport\PassportServiceProvider;
+
 return [
 
     /*

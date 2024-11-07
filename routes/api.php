@@ -5,31 +5,32 @@ use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Laravel\Passport\Http\Controllers\AccessTokenController;
-use Laravel\Passport\Http\Controllers\ApproveAuthorizationController;
-use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
-use Laravel\Passport\Http\Controllers\ClientController;
-use Laravel\Passport\Http\Controllers\DenyAuthorizationController;
-use Laravel\Passport\Http\Controllers\PersonalAccessTokenController;
-use Laravel\Passport\Http\Controllers\ScopeController;
-use Laravel\Passport\Http\Controllers\TransientTokenController;
+use App\Http\Controllers\Api\Auth\AccessTokenController;
+use App\Http\Controllers\Api\Auth\ApproveAuthorizationController;
+use App\Http\Controllers\Api\Auth\AuthorizationController;
+use App\Http\Controllers\Api\Auth\AuthorizedAccessTokenController;
+use App\Http\Controllers\Api\Auth\ClientController;
+use App\Http\Controllers\Api\Auth\DenyAuthorizationController;
+use App\Http\Controllers\Api\Auth\PersonalAccessTokenController;
+use App\Http\Controllers\Api\Auth\ScopeController;
+use App\Http\Controllers\Api\Auth\TransientTokenController;
 
 $currentVersion = env('API_CURRENT_VERSION');
 
 Route::prefix("{$currentVersion}")->group(function () {
 
     // Public auth routes
-    Route::post('/auth', [AuthController::class, 'login']);
-    Route::middleware('throttle')->post('/token', [AccessTokenController::class, 'issueToken'])->name('token');
+    Route::get('/authorize', [AuthorizationController::class, 'authorize']);
+
+    Route::post('/token', [AccessTokenController::class, 'issueToken'])->name('token')->middleware('throttle');
     Route::post('/token/refresh', [TransientTokenController::class, 'refresh'])->name('token.refresh');
     Route::post('/authorize', [ApproveAuthorizationController::class, 'approve'])->name('authorizations.approve');
     Route::delete('/authorize', [DenyAuthorizationController::class, 'deny'])->name('authorizations.deny');
 
     // Other public routes
-    Route::post('users', [UserController::class, 'store']);
+    Route::post('/users', [UserController::class, 'store']);
     Route::get('categories', [CategoryController::class, 'index']);
     Route::get('categories/{category}', [CategoryController::class, 'show']);
     Route::get('tags', [TagController::class, 'index']);
